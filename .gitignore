@@ -9,7 +9,8 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 .data/
-
+data/
+git
 
 
 .idea/
