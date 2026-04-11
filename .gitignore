@@ -8,6 +8,10 @@ venv/
 pip-log.txt
 pip-delete-this-directory.txt
 
+.data/
+
+
+
 .idea/
 *.iml
 *.iws
