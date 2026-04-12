@@ -15,6 +15,17 @@ services:
       - ./configs/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:rw
       - ./configs/postgres/init:/docker-entrypoint-initdb.d
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 6G
+        reservations:
+          cpus: '1.0'
+          memory: 3G
+
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
