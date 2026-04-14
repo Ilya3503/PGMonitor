@@ -1,0 +1,52 @@
+pg_stat_statements:
+  query: |
+    SELECT
+      db.datname AS datname,
+      queryid::text AS queryid,
+      calls,
+      total_exec_time,
+      mean_exec_time,
+      max_exec_time,
+      rows,
+      shared_blks_hit,
+      shared_blks_read,
+      temp_blks_read,
+      temp_blks_written
+    FROM pg_stat_statements s
+    JOIN pg_database db ON db.oid = s.dbid
+    WHERE s.query NOT LIKE '%pg_stat_statements%'
+    LIMIT 50
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - queryid:
+        usage: "LABEL"
+        description: "Query ID"
+    - calls:
+        usage: "COUNTER"
+        description: "Number of calls"
+    - total_exec_time:
+        usage: "COUNTER"
+        description: "Total execution time ms"
+    - mean_exec_time:
+        usage: "GAUGE"
+        description: "Mean execution time ms"
+    - max_exec_time:
+        usage: "GAUGE"
+        description: "Max execution time ms"
+    - rows:
+        usage: "COUNTER"
+        description: "Total rows returned"
+    - shared_blks_hit:
+        usage: "COUNTER"
+        description: "Shared block cache hits"
+    - shared_blks_read:
+        usage: "COUNTER"
+        description: "Shared block reads from disk"
+    - temp_blks_read:
+        usage: "COUNTER"
+        description: "Temp blocks read"
+    - temp_blks_written:
+        usage: "COUNTER"
+        description: "Temp blocks written"

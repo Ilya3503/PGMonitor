@@ -51,20 +51,24 @@ services:
         condition: service_healthy
 
 
-
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: postgres-exporter
     restart: unless-stopped
+    command:
+      - "--config.file=/etc/postgres_exporter.yml"
     environment:
       DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
-      PG_EXPORTER_EXTENDED_QUERY_PATH: /etc/postgres_exporter/queries.yaml
-      PG_EXPORTER_COLLECTOR_STAT_STATEMENTS: "true"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/queries/queries.yaml"
+    volumes:
+      - ./configs/postgres_exporter/postgres_exporter.yml:/etc/postgres_exporter.yml:ro
+      - ./configs/postgres_exporter/queries.yaml:/etc/queries/queries.yaml:ro
     ports:
       - "9187:9187"
     depends_on:
       postgres:
         condition: service_healthy
+
 
   prometheus:
     image: prom/prometheus:latest

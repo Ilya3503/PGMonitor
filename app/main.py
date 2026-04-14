@@ -82,7 +82,7 @@ async def start_load(intensity: int = 50):
 async def generate_load(intensity: int):
     while True:
         tasks = []
-        for _ in range(min(8, intensity // 20):
+        for _ in range(min(8, intensity//20)):
             r = random.random()
             if r < 0.4:
                 tasks.append(asyncio.create_task(simple_query()))

@@ -1,0 +1,9 @@
+# configs/postgres_exporter/postgres_exporter.yml
+auth_modules:
+  pgmonitor:
+    type: userpass
+    userpass:
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+    options:
+      sslmode: disable
