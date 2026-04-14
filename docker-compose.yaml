@@ -72,6 +72,7 @@ services:
       - "9090:9090"
     volumes:
       - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/rules.yml:/etc/prometheus/rules.yml
     depends_on:
       - postgres-exporter
 
