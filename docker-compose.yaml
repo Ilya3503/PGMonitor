@@ -3,6 +3,7 @@ services:
     image: postgres:16
     container_name: postgres
     restart: unless-stopped
+    shm_size: 512m
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -58,6 +59,7 @@ services:
     environment:
       DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
       PG_EXPORTER_EXTENDED_QUERY_PATH: /etc/postgres_exporter/queries.yaml
+      PG_EXPORTER_COLLECTOR_STAT_STATEMENTS: "true"
     ports:
       - "9187:9187"
     depends_on:
@@ -91,6 +93,16 @@ services:
       - ./configs/grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
+
+  app-load:
+    build: ./app
+    container_name: app-load
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "9100:9100"
 
 volumes:
   pgadmin_data:
