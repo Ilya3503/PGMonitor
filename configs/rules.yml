@@ -25,9 +25,3 @@ groups:
       severity: critical
     annotations:
       summary: "Медленные запросы"
-
-  - alert: HighWALGenerationRate
-    expr: rate(pg_wal_size_bytes[5m]) > 1e6
-    for: 3m
-    labels:
-      severity: warning
