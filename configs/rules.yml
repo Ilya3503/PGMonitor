@@ -2,26 +2,50 @@ groups:
 - name: PostgreSQL
   rules:
 
-  - alert: HighConnectionCount
-    expr: pg_stat_activity_count > 120
-    for: 2m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Большое количество соединений"
-
-  - alert: LowCacheHitRatio
-    expr: (pg_stat_database_blks_hit{datname="dvdrental"} + pg_stat_database_blks_read{datname="dvdrental"}) > 0 and (pg_stat_database_blks_hit{datname="dvdrental"} / (pg_stat_database_blks_hit{datname="dvdrental"} + pg_stat_database_blks_read{datname="dvdrental"})) < 0.95
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Cache hit ratio ниже 95%"
-
-  - alert: SlowQueries
-    expr: increase(pg_stat_statements_max_exec_time[5m]) > 1000
+  - alert: PostgresExporterDown
+    expr: pg_up != 1
     for: 1m
     labels:
       severity: critical
     annotations:
-      summary: "Медленные запросы"
+      summary: "PostgreSQL недоступен для exporter"
+
+  - alert: HighConnectionCount
+    expr: sum(pg_stat_activity_count{datname="dvdrental",backend_type="client backend"}) > 20
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Высокое число клиентских соединений к dvdrental"
+
+  - alert: LowCacheHitRatio
+    expr: (sum(rate(pg_stat_database_blks_hit{datname="dvdrental"}[5m])) / clamp_min(sum(rate(pg_stat_database_blks_hit{datname="dvdrental"}[5m])) + sum(rate(pg_stat_database_blks_read{datname="dvdrental"}[5m])), 1)) < 0.99
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Cache hit ratio ниже 99% на dvdrental"
+
+  - alert: SlowQueries
+    expr: (sum(rate(pg_stat_statements_total_exec_time{datname="dvdrental"}[2m])) / clamp_min(sum(rate(pg_stat_statements_calls{datname="dvdrental"}[2m])), 1)) > 200
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Среднее время SQL > 200ms за последние 2 минуты"
+
+  - alert: AdvisorCriticalRecommendations
+    expr: sum(pg_advisor_recommendation_active{severity="critical"}) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "pg-advisor обнаружил критические проблемы"
+
+  - alert: AdvisorWarningRecommendations
+    expr: sum(pg_advisor_recommendation_active{severity="warning"}) >= 3
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "pg-advisor обнаружил несколько предупреждений"
