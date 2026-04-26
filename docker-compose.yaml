@@ -108,6 +108,29 @@ services:
     ports:
       - "9100:9100"
 
+
+  pg-advisor:
+    build: ./analyzer
+    container_name: pg-advisor
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      TOTAL_RAM_MB: 1024
+      ANALYSIS_INTERVAL_SEC: 60
+      ADVISOR_PORT: 9188
+    ports:
+      - "9188:9188"
+    volumes:
+      - advisor_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgadmin_data:
   grafana_data:
+  adviser_data:
