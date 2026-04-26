@@ -15,10 +15,11 @@ class Recommendation:
     description: str
     action: str            # what to do
     sql: Optional[str]     # ready-to-run SQL if applicable
+    fingerprint: str
 
 
 def _connect():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -34,6 +35,7 @@ def init_db():
                 description TEXT NOT NULL,
                 action      TEXT NOT NULL,
                 sql         TEXT,
+                fingerprint TEXT NOT NULL,
                 status      TEXT NOT NULL DEFAULT 'open',
                 created_at  TEXT NOT NULL,
                 resolved_at TEXT
@@ -59,27 +61,27 @@ def upsert_recommendations(recs: list[Recommendation]):
     with _connect() as conn:
         for rec in recs:
             existing = conn.execute(
-                "SELECT id, status FROM recommendations WHERE title = ? ORDER BY id DESC LIMIT 1",
-                (rec.title,)
+                "SELECT id, status FROM recommendations WHERE fingerprint = ? ORDER BY id DESC LIMIT 1",
+                (rec.fingerprint,)
             ).fetchone()
 
             if existing is None:
                 # Brand new recommendation
                 conn.execute(
                     """INSERT INTO recommendations
-                       (category, severity, title, description, action, sql, status, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, 'open', ?)""",
+                       (category, severity, title, description, action, sql, fingerprint, status, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)""",
                     (rec.category, rec.severity, rec.title,
-                     rec.description, rec.action, rec.sql, now)
+                     rec.description, rec.action, rec.sql, rec.fingerprint, now)
                 )
             elif existing["status"] == "resolved":
                 # Problem came back — reopen
                 conn.execute(
                     """INSERT INTO recommendations
-                       (category, severity, title, description, action, sql, status, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, 'open', ?)""",
+                       (category, severity, title, description, action, sql, fingerprint, status, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)""",
                     (rec.category, rec.severity, rec.title,
-                     rec.description, rec.action, rec.sql, now)
+                     rec.description, rec.action, rec.sql, rec.fingerprint, now)
                 )
             # status = open or dismissed → leave as is
 
@@ -96,6 +98,22 @@ def get_recommendations(status: Optional[str] = None) -> list[dict]:
                 "SELECT * FROM recommendations ORDER BY id DESC"
             ).fetchall()
         return [dict(r) for r in rows]
+
+def auto_resolve_missing(current_fingerprints: set[str]):
+    now = datetime.utcnow().isoformat()
+    with _connect() as conn:
+        if not current_fingerprints:
+            return
+        placeholders = ",".join("?" for _ in current_fingerprints)
+        conn.execute(
+            f"""
+            UPDATE recommendations
+            SET status = 'resolved', resolved_at = ?
+            WHERE status = 'open'
+              AND fingerprint NOT IN ({placeholders})
+            """,
+            (now, *current_fingerprints)
+        )
 
 
 def update_status(rec_id: int, status: str) -> bool:

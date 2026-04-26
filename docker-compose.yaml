@@ -133,4 +133,4 @@ services:
 volumes:
   pgadmin_data:
   grafana_data:
-  adviser_data:
+  advisor_data:

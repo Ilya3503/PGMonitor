@@ -3,7 +3,6 @@
 
 # ── Indexes ──────────────────────────────────────────────────────────────────
 
-# Tables with high seq_scan ratio — candidates for missing indexes
 MISSING_INDEXES = """
 SELECT
     relname                                                         AS table_name,
@@ -17,16 +16,16 @@ FROM pg_stat_user_tables
 WHERE n_live_tup   > %(min_rows)s
   AND seq_scan     > %(min_seq_scans)s
   AND seq_scan > COALESCE(idx_scan, 0)
+  AND seq_tup_read > n_live_tup * 5
 ORDER BY seq_tup_read DESC
 LIMIT 20;
 """
 
-# Indexes never used since last stats reset (excluding PK and UNIQUE constraints)
 UNUSED_INDEXES = """
 SELECT
     s.schemaname,
-    s.tablename,
-    s.indexname,
+    s.relname AS tablename,
+    s.indexrelname AS indexname,
     s.idx_scan,
     pg_size_pretty(pg_relation_size(s.indexrelid)) AS index_size,
     pg_relation_size(s.indexrelid)                 AS index_size_bytes
@@ -41,17 +40,18 @@ LIMIT 20;
 
 # ── Workload ──────────────────────────────────────────────────────────────────
 
-# Top slow queries by mean execution time
 SLOW_QUERIES = """
 SELECT
     queryid::text                               AS queryid,
     LEFT(query, 200)                            AS query_preview,
     calls,
     ROUND(mean_exec_time::numeric, 2)           AS mean_ms,
-    ROUND(total_exec_time::numeric / 1000, 2)  AS total_sec,
+    ROUND(total_exec_time::numeric / 1000, 2)   AS total_sec,
     ROUND(
-        100.0 * total_exec_time
-            / NULLIF(SUM(total_exec_time) OVER (), 0), 2
+        (
+            100.0 * total_exec_time
+            / NULLIF(SUM(total_exec_time) OVER (), 0)
+        )::numeric, 2
     )                                           AS pct_total_time,
     rows / NULLIF(calls, 0)                    AS avg_rows
 FROM pg_stat_statements
@@ -61,7 +61,6 @@ ORDER BY mean_exec_time DESC
 LIMIT 15;
 """
 
-# Currently running long transactions
 LONG_TRANSACTIONS = """
 SELECT
     pid,
@@ -72,14 +71,13 @@ SELECT
     LEFT(query, 200)                                             AS query_preview
 FROM pg_stat_activity
 WHERE xact_start IS NOT NULL
-  AND state != 'idle'
+  AND state IN ('active', 'idle in transaction')
   AND EXTRACT(EPOCH FROM (now() - xact_start)) > %(warn_sec)s
 ORDER BY tx_duration_sec DESC;
 """
 
 # ── Health ────────────────────────────────────────────────────────────────────
 
-# Cache hit ratio per database
 CACHE_HIT_RATIO = """
 SELECT
     datname,
@@ -91,7 +89,6 @@ WHERE datname NOT IN ('template0', 'template1', 'postgres')
   AND (blks_hit + blks_read) > 0;
 """
 
-# Tables with high dead tuple ratio (bloat / autovacuum lag)
 DEAD_TUPLES = """
 SELECT
     relname                                     AS table_name,
@@ -112,7 +109,6 @@ LIMIT 15;
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-# Fetch the parameters we want to analyze
 CONFIG_PARAMS = """
 SELECT name, setting, unit
 FROM pg_settings
@@ -133,8 +129,6 @@ WHERE name IN (
     'pg_stat_statements.max'
 );
 """
-
-# ── pg_stat_statements fill level ────────────────────────────────────────────
 
 PG_STAT_STATEMENTS_FILL = """
 SELECT

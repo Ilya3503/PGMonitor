@@ -22,6 +22,14 @@ def _fetch(conn, sql: str, params: dict = None) -> list[dict]:
         return cur.fetchall()
 
 
+def _has_pg_stat_statements(conn):
+    rows = _fetch(conn, """
+        SELECT 1
+        FROM pg_extension
+        WHERE extname = 'pg_stat_statements'
+    """)
+    return bool(rows)
+
 # ── Index analysis ────────────────────────────────────────────────────────────
 
 def analyze_indexes(conn) -> list[Recommendation]:
@@ -55,6 +63,7 @@ def analyze_indexes(conn) -> list[Recommendation]:
                     f"WHERE query ILIKE '%{r['table_name']}%'\n"
                     f"ORDER BY mean_exec_time DESC LIMIT 5;"
                 ),
+                fingerprint=f"missing_index:{r['table_name']}"
             ))
 
     # Unused indexes
@@ -80,6 +89,7 @@ def analyze_indexes(conn) -> list[Recommendation]:
                 "If confirmed unused, drop it to speed up writes and save space."
             ),
             sql=f"DROP INDEX CONCURRENTLY {r['schemaname']}.{r['indexname']};",
+            fingerprint=f"unused_index:{r['schemaname']}.{r['indexname']}"
         ))
 
     return recs
@@ -94,7 +104,9 @@ def analyze_workload(conn) -> list[Recommendation]:
     rows = _fetch(conn, queries.SLOW_QUERIES)
     for r in rows:
         mean_ms = float(r["mean_ms"] or 0)
-        if mean_ms < config.SLOW_QUERY_WARN_MS:
+        pct = float(r["pct_total_time"] or 0)
+
+        if mean_ms < config.SLOW_QUERY_WARN_MS and pct < 5:
             continue
         severity = "critical" if mean_ms >= config.SLOW_QUERY_CRIT_MS else "warning"
         recs.append(Recommendation(
@@ -111,6 +123,7 @@ def analyze_workload(conn) -> list[Recommendation]:
                 "Look for Seq Scan on large tables — consider adding an index."
             ),
             sql=f"EXPLAIN (ANALYZE, BUFFERS)\n{r['query_preview']};",
+            fingerprint=f"slow_query:{r['queryid']}"
         ))
 
     # Long-running transactions
@@ -137,6 +150,7 @@ def analyze_workload(conn) -> list[Recommendation]:
                 f"-- Cancel query (soft):\nSELECT pg_cancel_backend({r['pid']});\n"
                 f"-- Terminate connection (hard):\nSELECT pg_terminate_backend({r['pid']});"
             ),
+            fingerprint=f"long_tx:{r['usename']}:{r['query_preview'][:50]}"
         ))
 
     return recs
@@ -169,6 +183,7 @@ def analyze_health(conn) -> list[Recommendation]:
             action="Increase shared_buffers (currently set in postgresql.conf). "
                    "Recommended: 25% of total RAM. Requires restart.",
             sql="SHOW shared_buffers;",
+            fingerprint=f"cache_hit:{r['datname']}"
         ))
 
     # Dead tuples / autovacuum lag
@@ -192,6 +207,7 @@ def analyze_health(conn) -> list[Recommendation]:
                 "autovacuum_vacuum_scale_factor for this table."
             ),
             sql=f"VACUUM ANALYZE {r['table_name']};",
+            fingerprint=f"dead_tuples:{r['table_name']}"
         ))
 
     return recs
@@ -240,6 +256,7 @@ def analyze_config(conn) -> list[Recommendation]:
                 ),
                 action="Increase shared_buffers in postgresql.conf and restart PostgreSQL.",
                 sql=f"-- In postgresql.conf:\nshared_buffers = '{int(recommended)}MB'",
+                fingerprint="config:shared_buffers"
             ))
 
     # work_mem — warn if very low and slow queries exist
@@ -257,6 +274,7 @@ def analyze_config(conn) -> list[Recommendation]:
                 "and multiple operations can run per connection."
             ),
             sql="-- In postgresql.conf:\nwork_mem = '16MB'",
+            fingerprint="config:work_mem"
         ))
 
     # max_connections > 200 without pooler
@@ -272,6 +290,7 @@ def analyze_config(conn) -> list[Recommendation]:
             ),
             action="Consider using PgBouncer connection pooler to reduce connection overhead.",
             sql=None,
+            fingerprint="config:max_connections"
         ))
 
     # checkpoint_completion_target should be >= 0.7
@@ -287,6 +306,7 @@ def analyze_config(conn) -> list[Recommendation]:
             ),
             action="Set checkpoint_completion_target = 0.9 in postgresql.conf.",
             sql="-- In postgresql.conf:\ncheckpoint_completion_target = 0.9",
+            fingerprint="config:checkpoint_completion_target"
         ))
 
     # pg_stat_statements fill level
@@ -310,6 +330,7 @@ def analyze_config(conn) -> list[Recommendation]:
                     "pg_stat_statements.max in postgresql.conf."
                 ),
                 sql="SELECT pg_stat_statements_reset();",
+                fingerprint="config:pg_stat_statements"
             ))
 
     return recs
@@ -320,11 +341,14 @@ def analyze_config(conn) -> list[Recommendation]:
 def run_analysis() -> list[Recommendation]:
     try:
         conn = _connect()
+
+        has_pgss = _has_pg_stat_statements(conn)
+
         results = (
-            analyze_indexes(conn)
-            + analyze_workload(conn)
-            + analyze_health(conn)
-            + analyze_config(conn)
+                analyze_indexes(conn)
+                + (analyze_workload(conn) if has_pgss else [])
+                + analyze_health(conn)
+                + analyze_config(conn)
         )
         conn.close()
         return results

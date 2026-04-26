@@ -15,5 +15,5 @@ scrape_configs:
       - targets: ['postgres-exporter:9187']
 
   - job_name: pg-advisor
-      static_configs:
-          - targets: [ 'pg-advisor:9188' ]
+    static_configs:
+      - targets: ['pg-advisor:9188']

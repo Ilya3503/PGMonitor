@@ -24,7 +24,12 @@ def analysis_loop():
     while True:
         print(f"[advisor] Running analysis at {datetime.utcnow().isoformat()}")
         recs = analyzer.run_analysis()
+
+
+
         if recs:
+            fingerprints = {r.fingerprint for r in recs}
+            storage.auto_resolve_missing(fingerprints)
             storage.upsert_recommendations(recs)
             print(f"[advisor] {len(recs)} recommendations generated")
         open_recs = storage.get_recommendations(status="open")
@@ -166,6 +171,12 @@ def ui():
   </script>
 </body>
 </html>"""
+
+
+@app.get("/history")
+def history():
+    return storage.get_recommendations(status="resolved")
+
 
 
 if __name__ == "__main__":
