@@ -40,3 +40,14 @@
 
 ### 4. Дашборд в Grafana
 ![img.png](img.png)
+
+
+## Как запускать
+`docker-compose up -d --build`
+На localhost:
+- порт 5050 - pgadmin. Логин и пароль admin@local.com, admin
+- порт 9090 - prometheus
+- порт 9187 - postgres-exporter
+- порт 3000 - Grafana дашборды. Логин и пароль admin admin
+- порт 9188 - pg-advisor (приложение-аналитик, тут прям интерфейс на этом порту)
+- на порту 9188 можно дописать в конце ссылки /metrics - увидеть, какие метрики отправляются в prometheus. Можно на /docs посмотреть swagger-интерфейс.
