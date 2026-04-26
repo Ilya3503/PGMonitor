@@ -27,15 +27,23 @@ groups:
       summary: "Cache hit ratio ниже 99% на dvdrental"
 
   - alert: SlowQueries
-    expr: (sum(rate(pg_stat_statements_total_exec_time{datname="dvdrental"}[2m])) / clamp_min(sum(rate(pg_stat_statements_calls{datname="dvdrental"}[2m])), 1)) > 200
+    expr: max((rate(pg_stat_statements_total_exec_time{datname="dvdrental"}[2m])) / clamp_min(rate(pg_stat_statements_calls{datname="dvdrental"}[2m]), 0.001)) > 1000
     for: 1m
     labels:
       severity: critical
     annotations:
-      summary: "Среднее время SQL > 200ms за последние 2 минуты"
+      summary: "Есть очень медленный запрос (>1000ms) за последние 2 минуты"
+
+  - alert: SlowQueriesWarning
+    expr: max((rate(pg_stat_statements_total_exec_time{datname="dvdrental"}[2m])) / clamp_min(rate(pg_stat_statements_calls{datname="dvdrental"}[2m]), 0.001)) > 250
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Есть заметно медленный запрос (>250ms) за последние 2 минуты"
 
   - alert: AdvisorCriticalRecommendations
-    expr: sum(pg_advisor_recommendation_active{severity="critical"}) > 0
+    expr: sum(pg_advisor_recommendation_active{severity="critical"}) >= 3
     for: 1m
     labels:
       severity: critical
@@ -43,7 +51,7 @@ groups:
       summary: "pg-advisor обнаружил критические проблемы"
 
   - alert: AdvisorWarningRecommendations
-    expr: sum(pg_advisor_recommendation_active{severity="warning"}) >= 3
+    expr: sum(pg_advisor_recommendation_active{severity="warning"}) >= 6
     for: 2m
     labels:
       severity: warning
