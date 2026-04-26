@@ -18,26 +18,30 @@ _active = Gauge(
 
 
 def update_metrics(open_recs: list[dict]):
-    """
-    Rebuild Prometheus metrics from the current list of open recommendations.
-    Called after every analysis cycle.
-    """
-    _total.clear()
-    _active.clear()
+    counts = {}
 
-    counts: dict[tuple, int] = {}
+    # reset logic via overwrite, not clear
     for rec in open_recs:
         key = (rec["category"], rec["severity"])
         counts[key] = counts.get(key, 0) + 1
+
+    # overwrite totals completely
+    for label_values in list(_total._metrics.keys()):
+        _total.remove(*label_values)
+
+    for (cat, sev), count in counts.items():
+        _total.labels(category=cat, severity=sev).set(count)
+
+    # rebuild active completely
+    for label_values in list(_active._metrics.keys()):
+        _active.remove(*label_values)
+
+    for rec in open_recs:
         _active.labels(
             category=rec["category"],
             severity=rec["severity"],
             title=rec["title"],
         ).set(1)
-
-    for (cat, sev), count in counts.items():
-        _total.labels(category=cat, severity=sev).set(count)
-
 
 def metrics_output() -> tuple[bytes, str]:
     return generate_latest(registry), CONTENT_TYPE_LATEST
