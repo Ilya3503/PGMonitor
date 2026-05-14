@@ -422,10 +422,6 @@ CHECKS = [
 
 
 def run_all_checks(conn) -> tuple[list[Recommendation], list[str]]:
-    """
-    Run all 4 checks. If one fails, others still run.
-    Returns (recommendations, errors).
-    """
     results: list[Recommendation] = []
     errors: list[str] = []
     for name, fn in CHECKS:

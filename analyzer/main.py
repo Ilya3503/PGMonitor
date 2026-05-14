@@ -1,15 +1,3 @@
-"""
-pg-advisor service.
-
-Stateless: each analysis cycle replaces the in-memory snapshot.
-Exposes:
-  GET  /              — HTML UI showing the latest recommendations
-  GET  /recommendations  — JSON of the latest snapshot
-  POST /recompute     — force a new analysis cycle right now
-  GET  /metrics       — Prometheus scrape endpoint
-  GET  /health        — liveness probe
-"""
-
 import threading
 import time
 import traceback
@@ -26,10 +14,7 @@ import checks
 import exporter
 
 
-# ── In-memory snapshot ───────────────────────────────────────────────────────
-
 class State:
-    """Latest analysis result. Single source of truth — no DB, no disk."""
     lock = threading.Lock()
     recommendations: list[dict] = []
     last_run_at: datetime | None = None
@@ -55,10 +40,6 @@ def _connect():
 
 
 def run_analysis() -> dict:
-    """
-    Run one analysis cycle. Replaces State atomically.
-    Always exports metrics, even on failure.
-    """
     if State.is_running:
         return {"status": "skipped", "reason": "analysis already in progress"}
 

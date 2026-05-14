@@ -1,8 +1,3 @@
-"""
-Prometheus exporter. Pure stateless — metrics are rebuilt from
-the latest in-memory recommendations after every analysis cycle.
-"""
-
 from prometheus_client import (
     Gauge, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST,
 )

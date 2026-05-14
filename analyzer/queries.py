@@ -1,15 +1,3 @@
-"""
-All SQL queries used by the analyzer.
-Plain string constants — no logic, no f-strings, no business rules.
-
-IMPORTANT: in psycopg2, '%' inside SQL is treated as a parameter
-placeholder. All literal '%' (modulo operators, LIKE wildcards) must
-be written as '%%' so they survive parameter substitution.
-
-The bloat queries are adapted from pgexperts/pgx_scripts
-(table_bloat_check.sql, index_bloat_check.sql).
-"""
-
 PG_STAT_STATEMENTS_AVAILABLE = """
 SELECT EXISTS (
     SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'
