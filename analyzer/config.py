@@ -1,32 +1,35 @@
 import os
 
-# Database connection
+# ── Database connection ──────────────────────────────────────────────────────
 DB_HOST = os.getenv("DB_HOST", "postgres")
 DB_PORT = int(os.getenv("DB_PORT", "5432"))
 DB_NAME = os.getenv("DB_NAME", "dvdrental")
 DB_USER = os.getenv("DB_USER", "admin")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "admin")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
 
-# Analyzer settings
-ANALYSIS_INTERVAL_SEC = int(os.getenv("ANALYSIS_INTERVAL_SEC", "900"))  # 15 min
+# ── Service settings ─────────────────────────────────────────────────────────
+ANALYSIS_INTERVAL_SEC = int(os.getenv("ANALYSIS_INTERVAL_SEC", "900"))   # 15 min
 ADVISOR_PORT = int(os.getenv("ADVISOR_PORT", "9188"))
 TOTAL_RAM_MB = int(os.getenv("TOTAL_RAM_MB", "8192"))
+STATEMENT_TIMEOUT_MS = int(os.getenv("STATEMENT_TIMEOUT_MS", "5000"))
 
-# Thresholds — all can be overridden via env
-CACHE_HIT_RATIO_WARN = float(os.getenv("CACHE_HIT_RATIO_WARN", "0.90"))
-CACHE_HIT_RATIO_CRIT = float(os.getenv("CACHE_HIT_RATIO_CRIT", "0.80"))
+# ── Index thresholds ─────────────────────────────────────────────────────────
+SEQ_SCAN_PCT_WARN = float(os.getenv("SEQ_SCAN_PCT_WARN", "70"))   # % seq scans
+MIN_TABLE_ROWS = int(os.getenv("MIN_TABLE_ROWS", "5000"))
+MIN_SEQ_SCANS = int(os.getenv("MIN_SEQ_SCANS", "50"))
+UNUSED_INDEX_MIN_MB = float(os.getenv("UNUSED_INDEX_MIN_MB", "1"))
 
-DEAD_RATIO_WARN = float(os.getenv("DEAD_RATIO_WARN", "0.15"))   # 15% dead tuples
-DEAD_RATIO_CRIT = float(os.getenv("DEAD_RATIO_CRIT", "0.30"))
+# ── Bloat thresholds ─────────────────────────────────────────────────────────
+BLOAT_RATIO_WARN = float(os.getenv("BLOAT_RATIO_WARN", "20"))     # %
+BLOAT_RATIO_CRIT = float(os.getenv("BLOAT_RATIO_CRIT", "40"))     # %
+BLOAT_MIN_SIZE_MB = float(os.getenv("BLOAT_MIN_SIZE_MB", "10"))
 
-SEQ_SCAN_PCT_WARN = float(os.getenv("SEQ_SCAN_PCT_WARN", "0.70"))  # 70% seq scans
-MIN_TABLE_ROWS = int(os.getenv("MIN_TABLE_ROWS", "5000"))           # ignore small tables
-MIN_SEQ_SCANS = int(os.getenv("MIN_SEQ_SCANS", "50"))               # ignore rarely scanned
+# ── Query thresholds ─────────────────────────────────────────────────────────
+SLOW_QUERY_MEAN_MS_WARN = float(os.getenv("SLOW_QUERY_MEAN_MS_WARN", "500"))
+SLOW_QUERY_MEAN_MS_CRIT = float(os.getenv("SLOW_QUERY_MEAN_MS_CRIT", "2000"))
+QUERY_PCT_TOTAL_WARN = float(os.getenv("QUERY_PCT_TOTAL_WARN", "20"))  # % of total DB time
 
-SLOW_QUERY_WARN_MS = float(os.getenv("SLOW_QUERY_WARN_MS", "500"))
-SLOW_QUERY_CRIT_MS = float(os.getenv("SLOW_QUERY_CRIT_MS", "2000"))
-
-LONG_TX_WARN_SEC = int(os.getenv("LONG_TX_WARN_SEC", "60"))
-LONG_TX_CRIT_SEC = int(os.getenv("LONG_TX_CRIT_SEC", "300"))
-
-PG_STAT_STATEMENTS_MAX_WARN = float(os.getenv("PG_STAT_STATEMENTS_MAX_WARN", "0.80"))
+# ── Config check ─────────────────────────────────────────────────────────────
+SHARED_BUFFERS_TARGET_PCT = float(os.getenv("SHARED_BUFFERS_TARGET_PCT", "25"))
+EFFECTIVE_CACHE_TARGET_PCT = float(os.getenv("EFFECTIVE_CACHE_TARGET_PCT", "75"))
+PG_STAT_STATEMENTS_FILL_WARN = float(os.getenv("PG_STAT_STATEMENTS_FILL_WARN", "80"))  # %
