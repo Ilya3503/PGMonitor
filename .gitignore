@@ -12,6 +12,7 @@ pip-delete-this-directory.txt
 data/
 git
 
+out/
 
 .idea/
 *.iml
