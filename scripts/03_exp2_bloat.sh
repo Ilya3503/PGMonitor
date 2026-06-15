@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# ЭКСПЕРИМЕНТ 2 — РАЗДУТИЕ ТАБЛИЦЫ (table bloat)
+# ЭКСПЕРИМЕНТ 2 — РАЗДУТИЕ ТАБЛИЦЫ  (order_items, ~1.5 млн строк)
 # Цикл: отключаем автовакуум → 10× массовый UPDATE → детект bloat →
 #       VACUUM ANALYZE → верификация.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 source ./00_env.sh
 
-T="events"
+T="order_items"
 EXP="exp2"
 
 echo "╔══════════════════════════════════════════════════════════╗"
@@ -32,7 +32,7 @@ FROM pg_stat_user_tables WHERE relname='${T}';
 echo "[3] Запускаю 10 итераций массового UPDATE (~10% строк каждая)..."
 for i in $(seq 1 10); do
   echo "    итерация $i/10"
-  pg -c "UPDATE ${T} SET payload = payload || '.' WHERE id % 10 = ${i} % 10;" >/dev/null
+  pg -c "UPDATE ${T} SET price = price + 0.01 WHERE id % 10 = ${i} % 10;" >/dev/null
 done
 
 echo "[4] Метрики после UPDATE (раздутие должно вырасти):"
@@ -44,7 +44,9 @@ SELECT relname, n_live_tup, n_dead_tup,
 FROM pg_stat_user_tables WHERE relname='${T}';
 " | tee -a "$OUT_DIR/${EXP}_before.txt"
 
-echo "[5] ДЕТЕКТ: цикл анализа, ждём рекомендацию bloat..."
+echo "[5] ДЕТЕКТ: обновляю статистику и запускаю цикл анализа..."
+echo "    (ANALYZE нужен: оценка bloat в сервисе считается по pg_stats)"
+pg -c "ANALYZE ${T};" >/dev/null
 wait_cycle
 if has_rec "loat" && has_rec "$T"; then
   echo "  ✓ Сервис выдал рекомендацию о раздутии '${T}'."

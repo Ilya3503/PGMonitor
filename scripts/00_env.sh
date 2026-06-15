@@ -7,10 +7,11 @@
 # Имя docker-контейнера с PostgreSQL (из docker-compose: container_name: postgres)
 export PG_CONTAINER="postgres"
 
-# Доступы к БД (должны совпадать с .env стенда)
-export DB_NAME="dvdrental"
-export DB_USER="admin"          # POSTGRES_USER
-# пароль не нужен: ходим внутрь контейнера через docker exec, там trust/local
+# Доступы к БД (ДОЛЖНЫ совпадать с .env стенда — POSTGRES_DB / POSTGRES_USER).
+# Проверь свой .env и при необходимости поменяй значения ниже.
+export DB_NAME="${POSTGRES_DB:-dvdrental}"
+export DB_USER="${POSTGRES_USER:-admin}"
+# пароль не нужен: ходим внутрь контейнера через docker exec, там local-доступ
 
 # Адрес HTTP-интерфейса сервиса pg-advisor
 export ADVISOR_URL="http://localhost:9188"

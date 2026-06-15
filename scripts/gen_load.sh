@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# Генератор нагрузки для Эксп.1. Шлёт SELECT * FROM events WHERE user_id = ?
+# Генератор нагрузки для Эксп.1. Шлёт SELECT count(*) FROM orders WHERE customer_id = ?
 # в несколько параллельных потоков в течение заданного времени.
-# Если у тебя уже есть сервис app-load — можешь использовать его вместо этого.
+# customer_id в orders НЕ проиндексирован (см. init 02-large-data.sql) → Seq Scan.
 # Использование:  ./gen_load.sh <секунд> <потоков>
 # По умолчанию:   300 секунд, 4 потока
 # ─────────────────────────────────────────────────────────────────────────────
@@ -18,9 +18,9 @@ echo "== Нагрузка: ${DURATION}s, потоков: ${THREADS} =="
 one_thread() {
   local deadline=$(( $(date +%s) + DURATION ))
   while [ "$(date +%s)" -lt "$deadline" ]; do
-    local uid=$(( RANDOM % 100000 + 1 ))
+    local cid=$(( RANDOM % 300000 + 1 ))
     docker exec -i "$PG_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -tA \
-      -c "SELECT count(*) FROM events WHERE user_id = ${uid};" >/dev/null 2>&1
+      -c "SELECT count(*) FROM orders WHERE customer_id = ${cid};" >/dev/null 2>&1
   done
 }
 

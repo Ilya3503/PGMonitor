@@ -4,9 +4,9 @@
 # Особенность: требует РЕСТАРТА контейнера с разным shared_buffers,
 # поэтому делится на две фазы. Запускай с аргументом before|after.
 #
-#   Фаза 1:  выставь shared_buffers=32MB в configs/postgres/postgresql.conf,
+#   Фаза 1:  выставь shared_buffers=128MB в configs/postgres/postgresql.conf,
 #            docker compose up -d postgres,  затем  ./04_exp3_config.sh before
-#   Фаза 2:  выставь shared_buffers=1536MB (25% от 6144),
+#   Фаза 2:  верни shared_buffers=1536MB (25% от 6144 = норма),
 #            docker compose up -d postgres,  затем  ./04_exp3_config.sh after
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -27,12 +27,12 @@ pg -c "SHOW shared_buffers;"
 
 echo "[2] Сбрасываю статистику БД и прогреваю нагрузкой (3 мин)..."
 pg -c "SELECT pg_stat_reset();" >/dev/null
-# смешанная нагрузка: точечные выборки + агрегации по dvdrental + по events
+# смешанная нагрузка: точечные выборки + агрегации по реальным таблицам
 ( ./gen_load.sh 180 4 ) &
 LOADPID=$!
 # параллельно несколько агрегаций, чтобы задеть кэш
 for _ in $(seq 1 30); do
-  pg -c "SELECT count(*), avg(user_id) FROM events;" >/dev/null 2>&1 || true
+  pg -c "SELECT count(*), avg(price) FROM order_items;" >/dev/null 2>&1 || true
   sleep 5
 done
 wait $LOADPID 2>/dev/null || true
