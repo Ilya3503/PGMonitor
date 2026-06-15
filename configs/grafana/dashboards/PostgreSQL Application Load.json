@@ -230,12 +230,8 @@
                 "value": 0
               },
               {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
                 "color": "red",
-                "value": 2
+                "value": 1
               }
             ]
           }
@@ -257,7 +253,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^sum\\(pg_advisor_recommendation_active\\{severity=\"critical\"\\}\\)$/",
+          "fields": "/^sum\\(pg_advisor_recommendations_total\\{severity=\"critical\"\\}\\)$/",
           "values": false
         },
         "showThresholdLabels": false,
@@ -267,8 +263,8 @@
       "pluginVersion": "12.4.2",
       "targets": [
         {
-          "editorMode": "builder",
-          "expr": "sum(pg_advisor_recommendation_active{severity=\"critical\"})",
+          "editorMode": "code",
+          "expr": "sum(pg_advisor_recommendations_total{severity=\"critical\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"

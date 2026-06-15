@@ -13,8 +13,8 @@ ADVISOR_PORT = int(os.getenv("ADVISOR_PORT", "9188"))
 TOTAL_RAM_MB = int(os.getenv("TOTAL_RAM_MB", "8192"))
 STATEMENT_TIMEOUT_MS = int(os.getenv("STATEMENT_TIMEOUT_MS", "5000"))
 
-# ── Index thresholds ─────────────────────────────────────────────────────────
-SEQ_SCAN_PCT_WARN = float(os.getenv("SEQ_SCAN_PCT_WARN", "70"))   # % seq scans
+
+SEQ_SCAN_PCT_WARN = float(os.getenv("SEQ_SCAN_PCT_WARN", "70"))
 MIN_TABLE_ROWS = int(os.getenv("MIN_TABLE_ROWS", "5000"))
 MIN_SEQ_SCANS = int(os.getenv("MIN_SEQ_SCANS", "50"))
 UNUSED_INDEX_MIN_MB = float(os.getenv("UNUSED_INDEX_MIN_MB", "1"))
@@ -30,6 +30,8 @@ SLOW_QUERY_MEAN_MS_CRIT = float(os.getenv("SLOW_QUERY_MEAN_MS_CRIT", "2000"))
 QUERY_PCT_TOTAL_WARN = float(os.getenv("QUERY_PCT_TOTAL_WARN", "20"))  # % of total DB time
 
 # ── Config check ─────────────────────────────────────────────────────────────
+
+
 SHARED_BUFFERS_TARGET_PCT = float(os.getenv("SHARED_BUFFERS_TARGET_PCT", "25"))
 EFFECTIVE_CACHE_TARGET_PCT = float(os.getenv("EFFECTIVE_CACHE_TARGET_PCT", "75"))
-PG_STAT_STATEMENTS_FILL_WARN = float(os.getenv("PG_STAT_STATEMENTS_FILL_WARN", "80"))  # %
+PG_STAT_STATEMENTS_FILL_WARN = float(os.getenv("PG_STAT_STATEMENTS_FILL_WARN", "80"))

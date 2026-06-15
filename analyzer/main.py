@@ -91,7 +91,6 @@ def run_analysis() -> dict:
 # ── Scheduler ────────────────────────────────────────────────────────────────
 
 def scheduler_loop():
-    """Run immediately, then sleep & repeat."""
     while True:
         try:
             run_analysis()

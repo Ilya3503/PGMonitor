@@ -1,13 +1,3 @@
-"""
-Four analysis blocks. Each function:
-  - takes an open psycopg2 connection
-  - returns list[Recommendation]
-  - is independent: if one fails, others still work
-
-A Recommendation is a plain dataclass — no storage, no status,
-no statefulness. Each analysis cycle produces a fresh list.
-"""
-
 from dataclasses import dataclass, asdict
 from typing import Optional
 import psycopg2.extras
