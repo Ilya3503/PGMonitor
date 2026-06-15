@@ -4,27 +4,23 @@ services:
     container_name: postgres
     restart: unless-stopped
     shm_size: 512m
+    mem_limit: 5g
+
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
     ports:
       - "5432:5432"
+
     volumes:
       - ./data:/var/lib/postgresql/data
       - ./configs/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:rw
       - ./configs/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:rw
       - ./configs/postgres/init:/docker-entrypoint-initdb.d
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
 
-    deploy:
-      resources:
-        limits:
-          cpus: '3.0'
-          memory: 6G
-        reservations:
-          cpus: '1.0'
-          memory: 3G
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
 
 
     healthcheck:
@@ -119,7 +115,7 @@ services:
       DB_NAME: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      TOTAL_RAM_MB: 1024
+      TOTAL_RAM_MB: 6144
       ANALYSIS_INTERVAL_SEC: 60
       ADVISOR_PORT: 9188
     ports:
