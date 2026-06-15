@@ -22,6 +22,10 @@ pg -c "SELECT pg_stat_statements_reset();" >/dev/null 2>&1 || \
   echo "  (pg_stat_statements_reset недоступен — продолжаю)"
 pg -c "SELECT pg_stat_reset();" >/dev/null
 pg -c "DROP INDEX IF EXISTS idx_orders_customer_id;" >/dev/null
+# ВАЖНО: pg_stat_reset() обнуляет n_live_tup. Без ANALYZE условие сервиса
+# n_live_tup > MIN_TABLE_ROWS не выполнится и рекомендация не появится.
+echo "    Прогоняю ANALYZE, чтобы вернуть n_live_tup (иначе сервис не увидит таблицу)."
+pg -c "ANALYZE ${T};" >/dev/null
 
 echo "[1] Проверяю, что таблица на месте и без индекса на ${COL}:"
 pg -c "SELECT count(*) AS orders_rows FROM ${T};"
@@ -49,7 +53,10 @@ WHERE query ILIKE '%${T}%${COL}%' AND query NOT ILIKE '%pg_stat%'
 ORDER BY total_exec_time DESC LIMIT 3;
 " | tee -a "$OUT_DIR/${EXP}_before.txt" || true
 
-echo "[4] ДЕТЕКТ: запускаю цикл анализа и проверяю рекомендацию..."
+echo "[4] ДЕТЕКТ: обновляю статистику и запускаю цикл анализа..."
+echo "    (ANALYZE обязателен: pg_stat_reset обнулил n_live_tup, а условие"
+echo "     MISSING_INDEXES требует n_live_tup > MIN_TABLE_ROWS — без ANALYZE будет 0)"
+pg -c "ANALYZE ${T};" >/dev/null
 wait_cycle
 if has_rec "Missing index" && has_rec "$T"; then
   echo "  ✓ Сервис ВЫДАЛ рекомендацию по отсутствующему индексу на '${T}'."
@@ -68,6 +75,7 @@ pg -c "CREATE INDEX CONCURRENTLY idx_orders_customer_id ON ${T} (${COL});"
 
 echo "[6] СОСТОЯНИЕ 'ПОСЛЕ': повторяю нагрузку (2 мин)..."
 pg -c "SELECT pg_stat_reset();" >/dev/null
+pg -c "ANALYZE ${T};" >/dev/null
 ./gen_load.sh 120 4
 
 echo "    EXPLAIN ANALYZE того же запроса ПОСЛЕ индекса:"
@@ -89,7 +97,8 @@ WHERE query ILIKE '%${T}%${COL}%' AND query NOT ILIKE '%pg_stat%'
 ORDER BY total_exec_time DESC LIMIT 3;
 " | tee -a "$OUT_DIR/${EXP}_after.txt" || true
 
-echo "[8] ВЕРИФИКАЦИЯ: цикл анализа, рекомендация должна ИСЧЕЗНУТЬ..."
+echo "[8] ВЕРИФИКАЦИЯ: обновляю статистику и запускаю цикл анализа..."
+pg -c "ANALYZE ${T};" >/dev/null
 wait_cycle
 if has_rec "Missing index" && has_rec "$T"; then
   echo "  ⚠ Рекомендация всё ещё присутствует (проверь, что нагрузка после шла по индексу)."
